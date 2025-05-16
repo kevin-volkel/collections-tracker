@@ -15,7 +15,7 @@ export async function createUser ({username, password, email} : CreateUserInput)
     const hashedPassword = await bcrypt.hash(password, 10);
 
     try{
-        const user = await User.create({username, hashedPassword, email});
+        const user = await User.create({username, password: hashedPassword, email});
         user.save();
         return { username: user.username, email: user.email };
 
@@ -32,4 +32,15 @@ export async function createUser ({username, password, email} : CreateUserInput)
         throw error
     }
     
+}
+
+export async function getUserByUsername (username : string) {
+    await dbConnect();
+
+    try{
+        const user = await User.findOne({ username }).select("+password");
+        return user;
+    } catch (error : any) {
+        throw error;
+    }
 }
