@@ -5,6 +5,10 @@ const userSchema = new mongoose.Schema({
     email: { type: String, unique: true },
     username: { type: String, unique: true },
     password: String,
+    profilePicture: String,
+    bio: String,
+    collections: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Collection' }],
+
     createdAt: { type: Date, default: Date.now },
 });
 
