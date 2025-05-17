@@ -44,3 +44,14 @@ export async function getUserByUsername (username : string) {
         throw error;
     }
 }
+
+export async function getUserById (userId : string) {
+    await dbConnect();
+
+    try{
+        const user = await User.findOne({ _id: userId });
+        return user;
+    } catch (error: any) {
+        throw error;
+    }
+}
