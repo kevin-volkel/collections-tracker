@@ -2,13 +2,13 @@ import bcrypt from "bcrypt";
 import dbConnect from "@/lib/dbConnect.mjs"
 import User from "@/models/User";
 
-type CreateUserInput = {
+type UserType = {
     username: string;
     password: string;
     email: string;
 }
 
-export async function createUser ({username, password, email} : CreateUserInput) {
+export async function createUser ({username, password, email} : UserType) {
     await dbConnect();
 
     // Hash the password
@@ -53,5 +53,33 @@ export async function getUserById (userId : string) {
         return user;
     } catch (error: any) {
         throw error;
+    }
+}
+
+export async function updateUser (userId: string, newUser : Partial<UserType>) {
+    await dbConnect();
+
+    try {
+        const userToUpdate = await User.findOne({ _id: userId });
+        if (!userToUpdate) {
+            throw new Error("User not found");
+        }
+
+        for (const key of Object.keys(newUser)) {
+            if (key === "password") {
+                userToUpdate.password = await bcrypt.hash(newUser.password as string, 10);
+            } else if (key in userToUpdate) {
+                (userToUpdate as any)[key] = (newUser as any)[key];
+            }
+        }
+
+        // Run validation before saving
+        await userToUpdate.validate();
+
+        await userToUpdate.save();
+        return userToUpdate;
+
+    } catch (err : any) {
+        throw err;
     }
 }
