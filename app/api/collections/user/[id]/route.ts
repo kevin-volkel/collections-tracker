@@ -8,7 +8,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const { id } = await params;
     let auth, userId;
     try{
-        ({ _id: userId } = await authenticate(request));
+        ({ _id: userId } = authenticate(request));
         auth = true;
     } catch (err : any) {
         userId = null;

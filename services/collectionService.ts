@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import dbConnect from "@/lib/dbConnect.mjs"
 import Collection from "@/models/Collection";
+import User from "@/models/User"
 
 type CollectionType = {
     title: String,
@@ -17,6 +18,12 @@ export async function createCollection( {title, description, tags, isPublic, own
     try{
         const newCollection = await Collection.create({title, description, tags, isPublic, ownerId});
         newCollection.save();
+
+        //* Update the user's "collections" array
+        const user = await User.findById(ownerId);
+        user.collections.push(newCollection._id);
+        user.save();
+
         return {title, description, tags, isPublic};
     } catch (error : any) {
         throw error;
@@ -81,4 +88,29 @@ export async function getCollectionsByUser(userId: string, authUserId : string, 
         throw err
     }
 
+}
+
+export async function deleteCollection(collectionId: string, userId: string) {
+    await dbConnect();
+
+    try{
+        let collectionToDelete = await Collection.findById(collectionId);
+        if(collectionToDelete.ownerId == userId) {
+            await Collection.deleteOne({_id: collectionId});
+
+            //* Also remove the collection from the user array
+            const user = await User.findById(userId);
+            if(!user) {
+                throw new Error("Collection Deleted. User Not Found")
+            }
+            user.collections = user.collections.filter( (id : string) => id != collectionId);
+            await user.save();
+
+            return collectionToDelete;
+        } else {
+            throw new Error("Unauthorized")
+        }
+    } catch (err : any) {
+        throw err;
+    }
 }
