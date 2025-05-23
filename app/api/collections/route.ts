@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { authenticate } from "../util/authMiddleware";
-import type { NextRequest } from "next/server";
-import { createCollection } from "@/services/collectionService";
+import { NextRequest } from "next/server";
+import { createCollection, getAllCollections } from "@/services/collectionService";
 
 //* createCollection
 export async function POST(request: NextRequest)  {
@@ -32,5 +32,15 @@ export async function POST(request: NextRequest)  {
         return NextResponse.json( {collection: newCollection}, {status: 200});
     } catch (error : any) {
         return NextResponse.json( {error: error.message}, {status: 401});
+    }
+}
+
+//* getAllCollections
+export async function GET() {
+    try{
+        const collections = await getAllCollections();
+        return NextResponse.json(collections, {status: 200});
+    } catch (err : any){
+        return NextResponse.json({error: err.message}, {status: 401});
     }
 }
