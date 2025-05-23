@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import dbConnect from "@/lib/dbConnect.mjs"
 import User from "@/models/User";
+import { deleteCollection } from "./collectionService";
 
 type UserType = {
     username: string;
@@ -49,7 +50,7 @@ export async function getUserById (userId : string) {
     await dbConnect();
 
     try{
-        const user = await User.findOne({ _id: userId });
+        const user = await User.findById(userId);
         return user;
     } catch (error: any) {
         throw error;
@@ -60,7 +61,7 @@ export async function updateUser (userId: string, newUser : Partial<UserType>) {
     await dbConnect();
 
     try {
-        const userToUpdate = await User.findOne({ _id: userId });
+        const userToUpdate = await User.findById(userId);
         if (!userToUpdate) {
             throw new Error("User not found");
         }
@@ -80,6 +81,35 @@ export async function updateUser (userId: string, newUser : Partial<UserType>) {
         return userToUpdate;
 
     } catch (err : any) {
+        throw err;
+    }
+}
+
+export async function deleteUser (userId: string) {
+    await dbConnect();
+
+    try {
+        const userToDelete = await User.findById(userId);
+        for(let collection of userToDelete.collections) {
+            console.log(collection);
+            let deletedCollection = await deleteCollection(collection, userId, true);
+            console.log(deletedCollection);
+        }
+
+        await User.findByIdAndDelete(userId);
+        return userToDelete;
+    } catch (err : any) {
+        throw err;
+    }
+}
+
+export async function getAllUsers() {
+    await dbConnect();
+
+    try{
+        const users = await User.find({}, { email: 0, collections: 0 });
+        return users;
+    } catch (err: any) {
         throw err;
     }
 }

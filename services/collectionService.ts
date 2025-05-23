@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 import dbConnect from "@/lib/dbConnect.mjs"
 import Collection from "@/models/Collection";
 import User from "@/models/User"
+import { deleteItem } from "./itemService";
 
 type CollectionType = {
     title: String,
@@ -75,6 +76,11 @@ export async function getCollectionsByUser(userId: string, authUserId : string, 
     await dbConnect();
 
     try{
+        let user = await User.findById(userId);
+        if(!user) {
+            throw new Error("User not found");
+        }
+
         let collections;
         if (isAuth && userId == authUserId) {
             collections = await Collection.find({ ownerId: userId });
@@ -90,21 +96,27 @@ export async function getCollectionsByUser(userId: string, authUserId : string, 
 
 }
 
-export async function deleteCollection(collectionId: string, userId: string) {
+export async function deleteCollection(collectionId: string, userId: string, userDelete : boolean) {
     await dbConnect();
 
     try{
         let collectionToDelete = await Collection.findById(collectionId);
         if(collectionToDelete.ownerId == userId) {
-            await Collection.deleteOne({_id: collectionId});
-
-            //* Also remove the collection from the user array
-            const user = await User.findById(userId);
-            if(!user) {
-                throw new Error("Collection Deleted. User Not Found")
+            for(let item of collectionToDelete.items) {
+                await deleteItem(item, collectionId, userId);
             }
-            user.collections = user.collections.filter( (id : string) => id != collectionId);
-            await user.save();
+
+
+            await Collection.deleteOne({_id: collectionId});
+            if(!userDelete){
+                //* Also remove the collection from the user array
+                const user = await User.findById(userId);
+                if(!user) {
+                    throw new Error("Collection Deleted. User Not Found")
+                }
+                user.collections = user.collections.filter( (id : string) => id != collectionId);
+                await user.save();
+            }
 
             return collectionToDelete;
         } else {

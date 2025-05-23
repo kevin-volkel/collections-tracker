@@ -2,11 +2,16 @@ import { NextResponse } from "next/server";
 import { authenticate } from "../util/authMiddleware";
 import { NextRequest } from "next/server";
 import { createCollection, getAllCollections } from "@/services/collectionService";
+import { getUserById } from "@/services/userService";
 
 //* createCollection
 export async function POST(request: NextRequest)  {
     try{
         const {_id : userId} = authenticate(request);
+        const user = await getUserById(userId);
+        if (!user) {
+            throw new Error("User not found");
+        }
         
         let title, description, isPublic, tags;
     
