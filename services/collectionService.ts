@@ -126,3 +126,40 @@ export async function deleteCollection(collectionId: string, userId: string, use
         throw err;
     }
 }
+
+export async function updateCollection (userId: string, collectionId: string, newCollection : Partial<CollectionType>) {
+    await dbConnect();
+
+    try {
+        let user = await User.findById(userId);
+        if(!user) {
+            throw new Error("User not found");
+        }
+
+
+        const collectionToUpdate = await Collection.findById(collectionId);
+        if (!collectionToUpdate) {
+            throw new Error("Collection not found");
+        }
+        if(collectionToUpdate.ownerId != userId) {
+            throw new Error("Unauthorized");
+        }
+
+        for (const key of Object.keys(newCollection)) {
+            if (key == "tags") {
+                console.error("Cannot change tags using this route");
+            } else if (key in collectionToUpdate) {
+                (collectionToUpdate as any)[key] = (newCollection as any)[key];
+            }
+        }
+
+        // Run validation before saving
+        await collectionToUpdate.validate();
+
+        await collectionToUpdate.save();
+        return collectionToUpdate;
+
+    } catch (err : any) {
+        throw err;
+    }
+}

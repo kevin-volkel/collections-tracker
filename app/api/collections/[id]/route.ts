@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { authenticate } from "@/app/api/util/authMiddleware";
 import { NextRequest } from "next/server";
-import { deleteCollection, getCollection, getPrivateCollection } from "@/services/collectionService";
+import { deleteCollection, getCollection, getPrivateCollection, updateCollection } from "@/services/collectionService";
 import { getUserById } from "@/services/userService";
 
 //* getSingleCollection
@@ -42,5 +42,32 @@ export async function DELETE(request: NextRequest, { params } : { params: { id: 
 
     } catch (err : any) {
         return NextResponse.json({error: err.message}, {status: 401});
+    }
+}
+
+export async function PUT(request : NextRequest, { params } : { params: { id: string }}) {
+    try{
+        const { id } = await params;
+        const {_id : userId} = authenticate(request);
+        const user = await getUserById(userId);
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        const formData = await request.formData();
+        let entries = formData.entries()
+        let updatedContent: Record<string, any> = {};
+
+        for (const [key, value] of entries) {
+            console.log(`${key}: ${value}`);
+            updatedContent[key] = value;
+        }
+
+        let newCollection = await updateCollection(userId, id, updatedContent);
+
+        return NextResponse.json( newCollection, {status: 200})
+
+    } catch (err : any) {
+        return NextResponse.json( {error: err.message}, {status: 401});
     }
 }
