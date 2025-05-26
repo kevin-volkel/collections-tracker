@@ -103,7 +103,7 @@ export async function deleteCollection(collectionId: string, userId: string, use
         let collectionToDelete = await Collection.findById(collectionId);
         if(collectionToDelete.ownerId == userId) {
             for(let item of collectionToDelete.items) {
-                await deleteItem(item, collectionId, userId);
+                await deleteItem(item, userId, true);
             }
 
 

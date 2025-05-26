@@ -65,7 +65,7 @@ export async function getItems(collectionId : string, userId : string, isAuth : 
         if(!collection.isPublic && userId != collection.ownerId){
             throw new Error("Unauthorized");
         }
-        
+
         //* Authorized - return the items
         return collection.items;
          
@@ -74,8 +74,35 @@ export async function getItems(collectionId : string, userId : string, isAuth : 
     }
 }
 
-export async function deleteItem(itemId : string, collectionId : string, userId : string) {
 
+
+export async function deleteItem(itemId : string, userId : string, collectionDelete : boolean ) {
+    await dbConnect();
+
+    try{
+        let itemToDelete = await Item.findById(itemId);
+        if(!itemToDelete) {
+            throw new Error("Item not found")
+        }
+        let collection = await Collection.findById(itemToDelete.collectionId);
+        if (!collection) {
+            throw new Error("Invalid Collection Id");
+        }
+        if (collection.ownerId != userId) {
+            throw new Error("Unauthorized");
+        }
+        
+        await Item.findByIdAndDelete(itemId);
+        if (!collectionDelete) { //* If the collection is NOT being deleted, need to remove item from collection
+            collection.items = collection.items.filter((id: string) => id != itemId);
+            await collection.save();
+        }
+
+        return itemToDelete;
+        
+    } catch (err : any) {
+        throw err;
+    }
 }
 
 export async function updateTags(itemId : string, newTags : [string]) {
