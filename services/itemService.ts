@@ -116,7 +116,7 @@ export async function updateItem(userId : string, itemId: string, newItem : Part
             }
     
             const itemToUpdate = await Item.findById(itemId);
-            const collection = itemToUpdate.collectionId;
+            const collection = await Collection.findById(itemToUpdate.collectionId);
 
             if (!collection) {
                 throw new CollectionNotFoundError();
