@@ -9,7 +9,7 @@ type CollectionType = {
     title: String,
     description: String,
     // items: [String], (will be added through the itemService)
-    tags: [String],
+    tags: String[],
     isPublic: Boolean,
     ownerId: String
 }

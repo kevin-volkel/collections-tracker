@@ -7,7 +7,7 @@ import { CannotUpdateTagsError, CollectionNotFoundError, ItemNotFoundError, Tags
 type ItemType = {
     name: String,
     description: String,
-    tags: [String],
+    tags: String[],
     collectionId: String
 }
 
