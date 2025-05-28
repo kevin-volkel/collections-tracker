@@ -144,6 +144,3 @@ export async function updateItem(userId : string, itemId: string, newItem : Part
         }
 }
 
-export async function updateTags(itemId : string, newTags : [string]) {
-    
-}

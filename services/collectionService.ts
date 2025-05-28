@@ -3,6 +3,7 @@ import dbConnect from "@/lib/dbConnect.mjs"
 import Collection from "@/models/Collection";
 import User from "@/models/User"
 import { deleteItem } from "./itemService";
+import { CollectionNotFoundError } from "@/lib/errors";
 
 type CollectionType = {
     title: String,
@@ -48,6 +49,9 @@ export async function getCollection(collectionId : string) {
 
     try {
         const collection = await Collection.findOne({_id: collectionId});
+        if(!collection) {
+            throw new CollectionNotFoundError();
+        }
         if(!collection.isPublic) {
             return {status: 401, collection: {}};
         }
