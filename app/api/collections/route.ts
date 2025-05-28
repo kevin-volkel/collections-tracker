@@ -3,6 +3,7 @@ import { authenticate } from "../util/authMiddleware";
 import { NextRequest } from "next/server";
 import { createCollection, getAllCollections } from "@/services/collectionService";
 import { getUserById } from "@/services/userService";
+import { MissingFieldsError, UserNotFoundError } from "@/lib/errors";
 
 //* createCollection
 export async function POST(request: NextRequest)  {
@@ -10,7 +11,7 @@ export async function POST(request: NextRequest)  {
         const {_id : userId} = authenticate(request);
         const user = await getUserById(userId);
         if (!user) {
-            throw new Error("User not found");
+            throw new UserNotFoundError();
         }
         
         let title, description, isPublic, tags;
@@ -30,13 +31,17 @@ export async function POST(request: NextRequest)  {
     
         // Basic Field Validation
         if(!title || !description) {
-            return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+            const missingFields = [];
+            if(!title) missingFields.push("Title");
+            if(!description) missingFields.push("Description");
+            throw new MissingFieldsError(missingFields);
         }
 
         const newCollection = await createCollection({title, description, tags, isPublic, ownerId: userId});
         return NextResponse.json( {collection: newCollection}, {status: 200});
-    } catch (error : any) {
-        return NextResponse.json( {error: error.message}, {status: 401});
+    } catch (err : any) {
+        const status  = err.statusCode || 500;
+        return NextResponse.json( {err: err.message}, {status});
     }
 }
 
@@ -46,6 +51,7 @@ export async function GET() {
         const collections = await getAllCollections();
         return NextResponse.json(collections, {status: 200});
     } catch (err : any){
-        return NextResponse.json({error: err.message}, {status: 401});
+        const status  = err.statusCode || 500;
+        return NextResponse.json( {err: err.message}, {status});
     }
 }

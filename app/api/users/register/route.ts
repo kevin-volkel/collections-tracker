@@ -1,3 +1,4 @@
+import { MissingFieldsError } from "@/lib/errors";
 import { createUser } from "@/services/userService";
 import { NextResponse } from "next/server";
 
@@ -19,20 +20,21 @@ export async function POST(request: Request) {
         
         // Basic validation
         if (!username || !password || !email) {
-            return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+            const missingFields = [];
+            if(!username) missingFields.push("Username");
+            if(!password) missingFields.push("Password");
+            if(!email) missingFields.push("Email");
+            throw new MissingFieldsError(missingFields);
         }
         
         const user = await createUser({username, password, email})
 
-        // For now, just return the received data (never return password in production)
         return NextResponse.json({
             message: "User created successfully",
             user: { username, email }
         }, { status: 201 });
-    } catch (error : any) {
-        if(error.message != "") {
-            return NextResponse.json({error: error.message}, {status: 400})
-        }
-        return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    } catch (err : any) {
+        const status  = err.statusCode || 500;
+        return NextResponse.json( {err: err.message}, {status});
     }
 }

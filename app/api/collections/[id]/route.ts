@@ -3,6 +3,7 @@ import { authenticate } from "@/app/api/util/authMiddleware";
 import { NextRequest } from "next/server";
 import { deleteCollection, getCollection, getPrivateCollection, updateCollection } from "@/services/collectionService";
 import { getUserById } from "@/services/userService";
+import { UserNotFoundError } from "@/lib/errors";
 
 //* getSingleCollection
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
@@ -18,13 +19,14 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         const {_id: userId} = authenticate(request);
         const user = await getUserById(userId);
         if (!user) {
-            throw new Error("User not found");
+            throw new UserNotFoundError();
         }
         res = await getPrivateCollection(id, userId);
         return NextResponse.json({collection: res.collection}, {status: 200});
 
     } catch (err : any){
-        return NextResponse.json({error: err.message}, {status: 401});
+        const status  = err.statusCode || 500;
+        return NextResponse.json( {err: err.message}, {status});
     }
 }
 
@@ -34,14 +36,15 @@ export async function DELETE(request: NextRequest, { params } : { params: { id: 
         let { _id : userId} = authenticate(request);
         const user = await getUserById(userId); 
         if (!user) {
-            throw new Error("User not found");
+            throw new UserNotFoundError();
         }
 
         let deletedCollection = await deleteCollection(id, userId, false);
         return NextResponse.json({deletedCollection}, {status: 202});
 
     } catch (err : any) {
-        return NextResponse.json({error: err.message}, {status: 401});
+        const status  = err.statusCode || 500;
+        return NextResponse.json( {err: err.message}, {status});
     }
 }
 
@@ -51,7 +54,7 @@ export async function PUT(request : NextRequest, { params } : { params: { id: st
         const {_id : userId} = authenticate(request);
         const user = await getUserById(userId);
         if (!user) {
-            throw new Error("User not found");
+            throw new UserNotFoundError();
         }
 
         const formData = await request.formData();
@@ -68,6 +71,7 @@ export async function PUT(request : NextRequest, { params } : { params: { id: st
         return NextResponse.json( newCollection, {status: 200})
 
     } catch (err : any) {
-        return NextResponse.json( {error: err.message}, {status: 401});
+        const status  = err.statusCode || 500;
+        return NextResponse.json( {err: err.message}, {status});
     }
 }

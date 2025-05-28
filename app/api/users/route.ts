@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { authenticate } from "../util/authMiddleware";
 import type { NextRequest } from "next/server";
 import { deleteUser, getUserById, updateUser } from "@/services/userService";
+import { UserNotFoundError } from "@/lib/errors";
 
 export async function GET(request: NextRequest)  {
     try{
@@ -9,12 +10,13 @@ export async function GET(request: NextRequest)  {
 
         const user = await getUserById(userId);
         if(!user) {
-            throw new Error("User not found");
+            throw new UserNotFoundError();
         }
 
         return NextResponse.json(user, {status: 200});
     } catch (err : any) {
-        return NextResponse.json( {error: err.message}, {status: 401});
+        const status  = err.statusCode || 500;
+        return NextResponse.json( {err: err.message}, {status});
     }
 }
 
@@ -23,7 +25,7 @@ export async function PUT(request : NextRequest) {
         const {_id : userId} = authenticate(request);
         const user = await getUserById(userId);
         if (!user) {
-            throw new Error("User not found");
+            throw new UserNotFoundError();
         }
 
         const formData = await request.formData();
@@ -32,7 +34,6 @@ export async function PUT(request : NextRequest) {
         let updatedContent: Record<string, any> = {};
 
         for (const [key, value] of entries) {
-            console.log(`${key}: ${value}`);
             updatedContent[key] = value;
         }
 
@@ -41,7 +42,8 @@ export async function PUT(request : NextRequest) {
         return NextResponse.json( newUserInfo, {status: 200})
 
     } catch (err : any) {
-        return NextResponse.json( {error: err.message}, {status: 401});
+        const status  = err.statusCode || 500;
+        return NextResponse.json( {err: err.message}, {status});
     }
 }
 
@@ -50,7 +52,7 @@ export async function DELETE(request : NextRequest) {
         const {_id: userId} = authenticate(request);
         const user = await getUserById(userId);
         if (!user) {
-            throw new Error("User not found");
+            throw new UserNotFoundError();
         }
         await deleteUser(userId);
         return NextResponse.json( {deletedUser: user}, {status:200});

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticate } from "../util/authMiddleware";
 import { addItem } from "@/services/itemService";
+import { MissingFieldsError } from "@/lib/errors";
 
 
 export async function POST(request: NextRequest)  {
@@ -24,12 +25,17 @@ export async function POST(request: NextRequest)  {
     
         // Basic Field Validation
         if(!name || !description || !collectionId) {
-            return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+            const missingFields = [];
+            if(!name) missingFields.push("Name");
+            if(!description) missingFields.push("Description");
+            if(!collectionId) missingFields.push("CollectionId")
+            throw new MissingFieldsError(missingFields);
         }
 
         const newItem = await addItem({name, description, tags, collectionId}, userId);
         return NextResponse.json( {item: newItem}, {status: 200});
     } catch (error : any) {
-        return NextResponse.json( {error: error.message}, {status: 401});
+        const status  = error.statusCode || 500;
+        return NextResponse.json( {error: error.message}, {status});
     }
 }

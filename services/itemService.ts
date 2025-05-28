@@ -2,6 +2,7 @@ import dbConnect from "@/lib/dbConnect.mjs"
 import Collection from "@/models/Collection";
 import User from "@/models/User"
 import Item from "@/models/Item"
+import { CannotUpdateTagsError, CollectionNotFoundError, ItemNotFoundError, TagsLengthError, UnauthorizedError, UserNotFoundError } from "@/lib/errors";
 
 type ItemType = {
     name: String,
@@ -17,21 +18,21 @@ export async function addItem({ name, description, tags, collectionId } : ItemTy
         //* Check for a valid user
         const user = await User.findById(userId);
         if(!user) {
-            throw new Error("No user found")
+            throw new UserNotFoundError();
         }
 
         //* Grab the collection and ensure owners match
         const collection = await Collection.findById(collectionId);
         if(!collection) {
-            throw new Error("No collection found")
+            throw new CollectionNotFoundError();
         };
         if(collection.ownerId != userId) {
-            throw new Error("You do not have permission to add items to this collection");
+            throw new UnauthorizedError();
         }
 
         //* Make sure the tags have the same length
         if(tags.length != collection.tags.length) {
-            throw new Error("Tags must be the same length as the collection");
+            throw new TagsLengthError("Items must have the same number of tags as the collection")
         }
 
         //* Make the item
@@ -57,13 +58,13 @@ export async function getItems(collectionId : string, userId : string, isAuth : 
         //* Find the collection with the items
         let collection = await Collection.findById(collectionId).populate("items");
         if(!collection) {
-            throw new Error("No collection found")
+            throw new CollectionNotFoundError();
         }
 
         //* Check if the collection is private
         //* If private, ensure owner account is signed in
         if(!collection.isPublic && userId != collection.ownerId){
-            throw new Error("Unauthorized");
+            throw new UnauthorizedError();
         }
 
         //* Authorized - return the items
@@ -82,14 +83,14 @@ export async function deleteItem(itemId : string, userId : string, collectionDel
     try{
         let itemToDelete = await Item.findById(itemId);
         if(!itemToDelete) {
-            throw new Error("Item not found")
+            throw new ItemNotFoundError();
         }
         let collection = await Collection.findById(itemToDelete.collectionId);
         if (!collection) {
-            throw new Error("Invalid Collection Id");
+            throw new CollectionNotFoundError("Collection Not Found: Invalid Collection Id")
         }
         if (collection.ownerId != userId) {
-            throw new Error("Unauthorized");
+            throw new UnauthorizedError();
         }
         
         await Item.findByIdAndDelete(itemId);
@@ -103,6 +104,44 @@ export async function deleteItem(itemId : string, userId : string, collectionDel
     } catch (err : any) {
         throw err;
     }
+}
+
+export async function updateItem(userId : string, itemId: string, newItem : Partial<ItemType>) {
+    await dbConnect();
+
+     try {
+            let user = await User.findById(userId);
+            if(!user) {
+                throw new UserNotFoundError();
+            }
+    
+            const itemToUpdate = await Item.findById(itemId);
+            const collection = itemToUpdate.collectionId;
+
+            if (!collection) {
+                throw new CollectionNotFoundError();
+            }
+            if(collection.ownerId != userId) {
+                throw new UnauthorizedError();
+            }
+    
+            for (const key of Object.keys(newItem)) {
+                if (key == "tags") {
+                    throw new CannotUpdateTagsError("Cannot update tags through this route");
+                } else if (key in itemToUpdate) {
+                    (itemToUpdate as any)[key] = (newItem as any)[key];
+                }
+            }
+    
+            // Run validation before saving
+            await itemToUpdate.validate();
+    
+            await itemToUpdate.save();
+            return itemToUpdate;
+    
+        } catch (err : any) {
+            throw err;
+        }
 }
 
 export async function updateTags(itemId : string, newTags : [string]) {
